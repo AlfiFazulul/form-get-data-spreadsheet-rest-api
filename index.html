@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Form Cek dan Submit Data</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .spinner-border.spinner-border-sm {
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+  <div class="card shadow">
+    <div class="card-body">
+      <h4 class="card-title mb-4">Form Cek dan Simpan Data</h4>
+
+      <!-- Form Cari ID -->
+      <form onsubmit="event.preventDefault(); lookup();">
+        <div class="mb-3 row">
+          <label for="inputId" class="col-sm-2 col-form-label">ID</label>
+          <div class="col-sm-6">
+            <input type="text" class="form-control" id="inputId" placeholder="Masukkan ID">
+          </div>
+          <div class="col-sm-4">
+            <button type="submit" id="lookupBtn" class="btn btn-primary">Cari Data</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Form Data -->
+      <form onsubmit="submitForm(event)">
+        <div class="mb-3 row">
+          <label class="col-sm-2 col-form-label">Nama</label>
+          <div class="col-sm-10">
+            <input type="text" id="nama" class="form-control" readonly>
+          </div>
+        </div>
+
+        <div class="mb-3 row">
+          <label class="col-sm-2 col-form-label">Alamat</label>
+          <div class="col-sm-10">
+            <input type="text" id="alamat" class="form-control" readonly>
+          </div>
+        </div>
+
+        <div class="mb-3 row">
+          <label class="col-sm-2 col-form-label">No HP</label>
+          <div class="col-sm-10">
+            <input type="text" id="nohp" class="form-control" readonly>
+          </div>
+        </div>
+
+        <div class="mb-3 row">
+          <label class="col-sm-2 col-form-label">Owner</label>
+          <div class="col-sm-10">
+            <input type="text" id="owner" class="form-control" readonly>
+          </div>
+        </div>
+
+        <!-- Tombol Submit -->
+        <div class="text-end">
+          <button id="submitBtn" type="submit" class="btn btn-success">
+            Submit ke Sheet2
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Script -->
+<script>
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbz4lA8etjzoMS0exL6uRvTNYKdAZ1HFSvoYr5CxUeu3j7ew_Qil0yxsXLrXFlN8V6tq/exec';
+
+  function lookup() {
+    const id = document.getElementById('inputId').value.trim();
+    const lookupBtn = document.getElementById('lookupBtn');
+    const originalText = lookupBtn.innerHTML;
+
+    if (!id) {
+      alert("Mohon masukkan ID terlebih dahulu.");
+      return;
+    }
+
+    lookupBtn.disabled = true;
+    lookupBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Mencari...`;
+
+    fetch(`${scriptURL}?id=${id}`)
+      .then(async response => {
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.includes("application/json")) {
+          const data = await response.json();
+          document.getElementById('nama').value = data.nama || '';
+          document.getElementById('alamat').value = data.alamat || '';
+          document.getElementById('nohp').value = data.nohp || '';
+          document.getElementById('owner').value = data.owner || ''; // ambil dari Sheet1
+        } else {
+          const text = await response.text();
+          alert(text === "Not Found" ? "Data tidak ditemukan." : text);
+        }
+      })
+      .catch(() => alert("Terjadi kesalahan saat mengambil data."))
+      .finally(() => {
+        lookupBtn.disabled = false;
+        lookupBtn.innerHTML = originalText;
+      });
+  }
+
+  function submitForm(event) {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById("submitBtn");
+    const originalText = submitBtn.innerHTML;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...`;
+
+    const formData = new URLSearchParams();
+    formData.append("id", document.getElementById("inputId").value.trim());
+    formData.append("nama", document.getElementById("nama").value.trim());
+    formData.append("alamat", document.getElementById("alamat").value.trim());
+    formData.append("nohp", document.getElementById("nohp").value.trim());
+    formData.append("owner", document.getElementById("owner").value.trim());
+
+    fetch(scriptURL, {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.text())
+    .then(response => {
+      if (response.includes("Submitted")) {
+        alert("✅ Data berhasil disimpan ke Spreadsheet.");
+      } else if (response === "Incomplete Data") {
+        alert("❌ Data tidak lengkap. Pastikan semua kolom terisi.");
+      } else {
+        alert("Respon tidak dikenali: " + response);
+      }
+    })
+    .catch(() => alert("Gagal menyimpan data."))
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    });
+  }
+</script>
+
+</body>
+</html>
 
